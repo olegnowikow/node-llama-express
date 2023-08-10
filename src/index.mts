@@ -2,11 +2,15 @@ import express from "express"
 import { LLM } from "llama-node"
 import { LLamaCpp } from "llama-node/dist/llm/llama-cpp.js"
 
+const modelname = process.env.MODEL
+
 
 const llama = new LLM(LLamaCpp)
 await llama.load({
   // If you plan to use a different model you also need to edit line 26 in the Dockerfile
-  modelPath: "./models/airoboros-13b-gpt4.ggmlv3.q4_0.bin",
+  //modelPath: "./models/airoboros-13b-gpt4.ggmlv3.q4_0.bin",
+  //modelPath: "./models/nous-hermes-llama2-13b.ggmlv3.q8_0.bin",
+  modelPath: `./models/${modelname}`,
   enableLogging: false,
   nCtx: 1024,
   seed: 0,
@@ -81,12 +85,12 @@ app.get("/", async (req, res) => {
   // }
 
   const id = `${pending.total++}`
-  console.log(`new request ${id}`)
+  console.log(`new request ${id} with promt ${req.query.prompt}`)
 
   pending.queue.push(id)
   pending.aborts[id] = new AbortController() 
 
-  res.write("<html><head>")
+  res.write('<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">')
 
   req.on("close", function() {
     endRequest(id, "browser ended the connection")
@@ -100,21 +104,22 @@ app.get("/", async (req, res) => {
   const options = {
     prompt: `# Instructions
 Generate an HTML webpage about: ${req.query.prompt}
-Use English, not Latin!
-To create section titles, please use <h2>, <h3> etc
+Use Russian language, not Latin and English!
+For code use <code>.
 # HTML output
 <html><head>`,
-    nThreads: 2,
+    nThreads: 16,
     nTokPredict: 1024,
-    topK: 40,
+    topK: 10000,
     topP: 0.1,
-    temp: 0.3,
-    repeatPenalty: 1,
+    temp: 0.2,
+    repeatPenalty: 1.1,
   }
       
   try {
     await llama.createCompletion(options, (response) => {
       try {
+        console.log('token:',response);
         res.write(response.token)
       } catch (err) {
         console.log(`coudln't write the LLM response to the HTTP stream ${err}`)

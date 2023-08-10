@@ -1,0 +1,11 @@
+services:
+  ai-jfd:
+    image: ai-jfd 
+    container_name: ai-jfd
+    volumes:
+      - ./:/app
+      - /home/ai/models:/app/models
+    ports:
+      - "80:7860"
+    environment:
+      - MODEL=nous-hermes-llama2-13b.ggmlv3.q8_0.bin 
